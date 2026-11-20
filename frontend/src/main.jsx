@@ -9,15 +9,24 @@ import {
 } from 'lucide-react';
 import './style.css';
 
-const API = '/api';
-const req = async (path, opt={}) => {
-  const response = await fetch(API + path, {...opt, credentials: 'same-origin'});
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api';
+
+const req = async (path, opt = {}) => {
+  const response = await fetch(API + path, {
+    ...opt,
+    credentials: 'include'
+  });
+
   if (!response.ok) {
     let result = {};
-    try { result = await response.json(); } catch {}
-    throw Error(result.detail || `HTTP ${response.status}`);
+    try {
+      result = await response.json();
+    } catch {}
+    throw new Error(result.detail || `HTTP ${response.status}`);
   }
-  return response.json();
+
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 };
 const motionNames = {push_in:'Slow push in',pull_out:'Pull back',pan_left:'Pan left',pan_right:'Pan right',track_up:'Track up',track_down:'Track down',static:'Hold frame'};
 const effectNames = {none:'None',leaves:'Falling leaves',particles:'Light particles'};
@@ -310,4 +319,3 @@ function App() {
     {landed?<Landing navigate={navigate} user={user}/>:route==='#/login'?<AuthScreen authMode={authMode} setAuthMode={setAuthMode} authenticate={authenticate} authBusy={authBusy} navigate={navigate} setError={setError}/>:route==='#/dashboard'?<Dashboard user={user} projects={projects} uploadName={uploadName} setUploadName={setUploadName} uploadFiles={uploadFiles} setUploadFiles={setUploadFiles} upload={upload} loading={loading} makeDemo={makeDemo} remove={remove} navigate={navigate} inputRef={inputRef} folderRef={folderRef}/>:pid?<Editor project={project} selected={selected} setSelected={setSelected} patch={patch} render={render} rendering={rendering} engine={engine} setEngine={setEngine} health={health} watchVideo={watchVideo} setWatchVideo={setWatchVideo} playing={playing} setPlaying={setPlaying} navigate={navigate} load={load} s={s} scenes={scenes} videoRevision={videoRevision}/>:<main className="not-found wrap"><h2>This page is taking a break.</h2><p>Let's get you back to your studio.</p><ArrowButton onClick={()=>navigate(user?'#/dashboard':'#/')}>Go back</ArrowButton></main>}
   </>;
 }
-createRoot(document.getElementById('root')).render(<App/>);

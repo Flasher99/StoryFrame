@@ -59,8 +59,15 @@ def set_session(response: Response, uid: str):
     token = secrets.token_urlsafe(48)
     with db() as c:
         c.execute('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES (?,?,?)', (hashlib.sha256(token.encode()).hexdigest(), uid, time.time()+SESSION_LIFETIME))
-    response.set_cookie(COOKIE, token, max_age=SESSION_LIFETIME, httponly=True, samesite='lax', secure=os.getenv('STORYFRAME_SECURE_COOKIES','false').lower()=='true', path='/')
-
+    response.set_cookie(
+    COOKIE,
+    token,
+    max_age=SESSION_LIFETIME,
+    httponly=True,
+    samesite="none" if os.getenv("STORYFRAME_SECURE_COOKIES", "false").lower() == "true" else "lax",
+    secure=os.getenv("STORYFRAME_SECURE_COOKIES", "false").lower() == "true",
+    path="/",
+)
 
 def pw_hash(password):
     salt = os.urandom(16)
@@ -125,5 +132,10 @@ def logout(request: Request,response: Response):
     if token:
         with db() as c:
             c.execute('DELETE FROM sessions WHERE token_hash=?',(hashlib.sha256(token.encode()).hexdigest(),))
-    response.delete_cookie(COOKIE,path='/',samesite='lax')
+    response.delete_cookie(
+    COOKIE,
+    path="/",
+    samesite="none" if os.getenv("STORYFRAME_SECURE_COOKIES", "false").lower() == "true" else "lax",
+    secure=os.getenv("STORYFRAME_SECURE_COOKIES", "false").lower() == "true",
+)
     return {'ok':True}

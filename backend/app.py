@@ -26,8 +26,17 @@ ALLOWED = {'.png', '.jpg', '.jpeg', '.webp'}
 MAX_FILES = 150
 MAX_BYTES = 15 * 1024 * 1024
 app = FastAPI(title='StoryFrame Motion Comic API', version='1.1')
-app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:5173', 'http://127.0.0.1:5173'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://storyframe-frontend.onrender.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @contextmanager
 def conn():
