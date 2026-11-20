@@ -1,0 +1,36 @@
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node.js
+node_modules/
+dist/
+.vite/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# User accounts, projects and uploaded files
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated videos
+*.mp4
+*.mov
+
+# System files
+.DS_Store
+*.log
+
+# Local development
+.idea/
+.vscode/
+
