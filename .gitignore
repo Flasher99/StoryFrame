@@ -1,36 +1,31 @@
-
-# Python
 .venv/
-venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-
-# Node.js
 node_modules/
-dist/
-.vite/
+__pycache__/
+.pytest_cache/
+*.pyc
+data/
+.DS_Store
+*.log
+frontend/dist/
 
-# Environment variables and secrets
+# Environment secrets
 .env
 .env.*
 !.env.example
+!.env.*.example
 
-# User accounts, projects and uploaded files
-data/
+# Local databases
 *.db
 *.sqlite
 *.sqlite3
 
-# Generated videos
+# Generated media
 *.mp4
 *.mov
+*.webm
 
-# System files
-.DS_Store
-*.log
-
-# Local development
-.idea/
+# Editor and build files
 .vscode/
-
+.idea/
+coverage/
+*.egg-info/

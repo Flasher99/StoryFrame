@@ -1,28 +1,38 @@
-# StoryFrame — img2vid Integration MVP
+# StoryFrame — Earthy Studio Edition
 
-A runnable, local-first storybook-to-motion-comic web application. Exactly four screens: landing, demo sign-in, project dashboard, and single-track scene editor. Folder/ZIP input, local MP4 output. Tested with the two supplied cartoon illustrations.
+StoryFrame is a local-first web application that turns a folder or ZIP archive of illustrated story pages into a cinematic motion-comic MP4, without a generative video model or dedicated GPU.
 
-## Supported effects
-- **Camera:** push-in, pull-out, left/right pan, up/down tracking, static.
-- **Transitions:** cut, dissolve, slide.
-- **Atmosphere:** falling leaves, floating particles, none.
-- Frame-based H.264 MP4, free local rendering, no paid API or dedicated GPU.
+## What's new in this edition
 
-## macOS quick start
+- Completely redesigned **minimal, editorial, earthy** user interface for all four pages: landing, email/password login, dashboard and timeline editor.
+- **3D scroll animation** on the landing page: perspective-tilting storybook panels and a scroll-driven three-stage layered story sequence. Implemented with CSS 3D transforms + `requestAnimationFrame` scroll updates, with a reduced-motion alternative. No WebGL, Three.js, paid effects plugin, or AI/video GPU needed.
+- Google sign-in has been **removed from the interface and from the backend authentication endpoints**. Email/password account creation and login remain. The existing SQLite user schema remains backward-compatible; no user records are deleted by upgrading.
+- Fixed the broken render request: `/api/projects/{id}/render?engine=auto` (not `/render&engine=auto`).
+- The finished MP4 appears automatically **inside the editor for review before download**. Scene edits invalidate the previous video and require another render.
+- The original StoryFrame backend, upload pipeline, img2vid adapter, particle/leaves compositor, and native fallback remain in place.
 
-Requires Python 3.10+, Node.js 18+, and FFmpeg (`brew install ffmpeg`).
+## Requirements
 
-**Terminal 1 — API:**
+- macOS (including Apple Silicon) or Linux
+- Python 3.10 or newer
+- Node.js 18 or newer
+- FFmpeg (`brew install ffmpeg` on macOS)
+- No external API keys, no dedicated GPU
+
+## Start the backend
+
+From the extracted `storyframe_mvp` directory:
 
 ```bash
-cd storyframe_mvp
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn backend.app:app --reload --port 8000
 ```
 
-**Terminal 2 — web:**
+## Start the frontend
+
+Open another terminal:
 
 ```bash
 cd storyframe_mvp/frontend
@@ -30,103 +40,52 @@ npm install
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**, sign in with a display name, click **Try sample story** (or upload images, a folder, or a ZIP), edit scene settings and click **Render MP4**. Wait until rendering finishes, then click **Watch rendered video** or **Download MP4**.
+Navigate to **http://127.0.0.1:5173**. Choose **Enter studio**, create an account (or sign in with your existing email/password), then create a project or select **Open the sample story**.
 
-## Use the real img2vid renderer
+## Render a video
 
-StoryFrame does **not** bundle or pretend to include the upstream `img2vid` source. It detects your separately installed [img2vid CLI](https://github.com/mrityunjay/img2vid), builds a storyboard matching its documented JSON schema, invokes `img2vid render`, then overlays atmospheric effects on its MP4. All editable scene settings are saved in SQLite.
+1. Upload a folder of JPG/PNG/WEBP pages, select multiple images, or upload a ZIP.
+2. Open the resulting project; pages are ordered by filename.
+3. Edit camera direction, transition, atmosphere and scene duration in the inspector.
+4. Select **Render video**. The backend renders in a thread, and the editor polls the status.
+5. When the MP4 is ready, the editor switches to the actual video player. Watch it and select **Download MP4** if you're happy with the result.
 
-If you previously installed it in `~/Downloads/img2vid/.venv/bin/img2vid`, StoryFrame detects it automatically. Otherwise install it in a separate terminal:
+Each scene supports camera push/pull/pan/track, transitions (cut/dissolve/slide), and atmosphere (leaves/particles/none).
 
-```bash
-cd ~/Downloads
-git clone https://github.com/mrityunjay/img2vid.git
-cd img2vid
-./install.sh --core
-.venv/bin/img2vid --help
-```
+## Optional img2vid integration
 
-**Alternatively** set `IMG2VID_BIN` before running FastAPI to the full path to the executable, for example:
+StoryFrame does not bundle third-party img2vid. The editor's **Automatic** engine uses the installed CLI when detected and otherwise uses the bundled native renderer. To point explicitly at a local img2vid executable, before starting the backend:
 
 ```bash
 export IMG2VID_BIN="$HOME/Downloads/img2vid/.venv/bin/img2vid"
-uvicorn backend.app:app --reload --port 8000
 ```
 
-Check detection at **http://127.0.0.1:8000/api/health**; `img2vidAvailable` should be `true`. With the editor's **Auto** engine, StoryFrame prefers external img2vid when installed. With **Built-in fallback**, it always renders using OpenCV + FFmpeg. If you select **img2vid** explicitly when it is missing, you will get a readable error instead of a silent fallback.
+The native renderer, written with Python, OpenCV and FFmpeg, works without that dependency. The adapter uses flat animation by default. The actual upstream img2vid CLI was not executed in this sandbox; test on your Mac separately.
 
-### Important notes about interoperability
-- The adapter uses `img2vid render storyboard.json -o ... --resolution 540`, as documented by upstream on Nov 18 2026. The installed version could differ; the actual upstream CLI needs to be tested on your Mac.
-- Upstream scenes include **outgoing** transition settings; StoryFrame's editor controls **incoming** transitions. The adapter translates between them.
-- This MVP uses img2vid's **flat motion** (`depth: false`, `animate: false`); no large AI models or downloaded depth weights are needed.
-- Upstream may overlap transition durations, making the final video marginally shorter than the sum of nominal scene lengths; atmospheric overlays use approximate scene boundaries.
-- If upstream rendering fails, select the built-in renderer rather than attempting an untested automatic rerender.
-- The CLI and its dependencies are installed independently; review upstream project/model licenses before distributing an integrated commercial product.
-
-## Architecture
-
-`frontend/` (React + Vite UI) → `backend/app.py` (FastAPI, persistence, uploads) → `backend/img2vid_bridge.py` (upstream storyboard, subprocess) → `backend/effects.py` (post-processing overlay) → FFmpeg H.264.
-
-Fallback `backend/app.py` also contains the existing OpenCV frame renderer and doesn't require img2vid.
-
-## Run tests
+## Automated tests
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-Tests cover upload/order, ZIP input, permissions isolation, scene edits, native MP4 render, storyboard mapping, and a **mock executable** exercising the img2vid adapter + atmospheric effects. The actual third-party CLI cannot be run in this packaging environment because cloning GitHub is unavailable here; that test requires your Mac installation.
+Tests cover account isolation, sign-in/logout, removal of the old Google endpoints, scene editing, ZIP/image input, native MP4 generation and an img2vid adapter with mock executable.
 
-## Explicit MVP limitations
+## Upgrading an existing installation without losing your projects
 
-- Local demo identity is **not** secure authentication; don't expose the application publicly.
-- No walking, lip-sync, skeletal animation, or AI-generated moving characters.
-- Preview initially displays a still image; the **Watch rendered video** button plays the final moving MP4 after rendering.
-- No automatic natural-language story analysis or speech synthesis.
-- External img2vid is optional; particles/leaves are implemented in StoryFrame's own post-processing, not in img2vid.
-- No completed frontend browser smoke test in this packaging environment. Verify `npm install && npm run dev` locally.
-- Scene duration is editable but not inferred from story events.
+**Do not delete or replace your existing `data/` directory.** It contains SQLite accounts, project metadata, uploaded images and renders.
 
----
+The easiest visual-only update is to replace these paths in your existing app:
 
-## Updated authentication and final-video preview
+- `frontend/src/main.jsx`
+- `frontend/src/style.css`
+- `frontend/public/images/` (new folder; copy it in)
 
-### New login & account creation
+To also disable the former Google OAuth API endpoints, replace `backend/auth.py` with this edition's file and reinstall `requirements.txt` if required. The database schema is intentionally left compatible with old versions. The new login page never shows a Google button, even if you only apply the frontend update.
 
-StoryFrame now has a **Sign in** and **Create account** panel. New local accounts are stored in the SQLite database (`data/storyframe.sqlite`). Passwords are salted and hashed with scrypt. Sessions use secure random bearer tokens stored only as hashes in the database and sent in HttpOnly, SameSite=Lax cookies. Project and video API access is restricted to the signed-in user, rather than relying on a display-name query parameter.
+## Implementation notes & limitations
 
-1. Start the FastAPI backend and Vite frontend with the commands above.
-2. Open `http://127.0.0.1:5173/#/login`.
-3. Choose **Create account**, enter your name, email, and a password of at least eight characters.
-4. Subsequent visits can use **Sign in** with email/password. Use **Sign out** when finished.
-
-The older demo-only display-name identity has been replaced: existing demo projects from the previous version are **not automatically migrated** into a real user account. This avoids accidentally exposing another user's work. Do not deploy this MVP as a public production service without further security review (HTTPS, CSRF controls, rate limiting, email confirmation, password reset, backups and monitoring).
-
-### Enable Google / Gmail sign-in
-
-The Google option uses Google's identity system. It cannot be activated just by installing the repository; you must configure a **Google OAuth 2.0 Web application client ID**:
-
-1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), set up the OAuth consent configuration and create an **OAuth Client ID** of type **Web application**.
-2. Under **Authorized JavaScript origins**, add both `http://127.0.0.1:5173` and `http://localhost:5173` (only origins that you actually use are required). Google Identity Services requires the correct origin to be registered. For hosted use, register your HTTPS domain.
-3. Set your backend environment variable **before** running Uvicorn:
-
-   ```bash
-   export GOOGLE_CLIENT_ID="YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
-   uvicorn backend.app:app --reload --port 8000
-   ```
-
-4. Restart the frontend and refresh the login page. **Continue with Google** should display a working Google sign-in button. The server validates the ID token against the configured client ID. The client ID is public configuration, **not** a secret. Do not place a Google client secret in frontend source code.
-
-If this variable is not set, Google sign-in is visibly marked **Not configured**. The account creation and email/password login continue to work without Google Cloud setup or payment. A user registered via email/password should sign in with their password; this version does not automatically link Google identity to an existing password account with the same email.
-
-### Final preview before download
-
-After **Render MP4**, StoryFrame keeps the editor open while processing and refreshes the project's status. When the video is ready, the editor automatically switches its large preview screen to the **actual rendered MP4** with playback controls. The **Download MP4** button appears in the final preview panel after rendering succeeds. Changing an animation property invalidates the previous render and requires a new export.
-
-### Testing
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-Automated tests check account creation, login/logout, per-user project isolation, upload and timeline edits, native MP4 generation, and the mocked img2vid adapter. The Google cloud sign-in flow requires a real Google client ID and browser interaction to test manually. The frontend JSX was syntax-checked, but installing and building npm dependencies in the sandbox was not completed; please run `cd frontend && npm install && npm run build` locally.
+- The moving landing-page story panels are CSS perspective effects on 2D images; they do not mean characters have 3D rigs or actual AI-generated video motion.
+- Motion-comic video uses existing illustrations plus camera, transitions and effects; no automatic independent character walking or lipsync.
+- Login is local email/password, stored as scrypt password hashes with sessions sent using HttpOnly cookies. Public deployment needs further review of rate limits, account recovery, HTTPS, CSRF protection, etc.
+- The exported MP4 supports standard video controls in the editor. This is a single-track scene editor, not a multilayer nonlinear editing tool.
+- Browser UI may require a modern desktop browser; scrolling animations respect `prefers-reduced-motion`.

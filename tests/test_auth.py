@@ -28,8 +28,7 @@ class AuthTests(unittest.TestCase):
         self.assertEqual(a.post('/api/auth/logout').status_code,200)
         self.assertEqual(a.get('/api/auth/me').status_code,401)
         self.assertEqual(b.get('/api/auth/me').status_code,200)
-    def test_google_requires_configuration(self):
-        from unittest.mock import patch
-        with patch.dict('os.environ',{'GOOGLE_CLIENT_ID':''}):
-            r=TestClient(app).post('/api/auth/google',json={'credential':'x'*30})
-            self.assertEqual(r.status_code,503)
+    def test_removed_google_signin_endpoint(self):
+        client=TestClient(app)
+        self.assertEqual(client.post('/api/auth/google',json={'credential':'x'*30}).status_code,404)
+        self.assertEqual(client.get('/api/auth/config').status_code,404)
