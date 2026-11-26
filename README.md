@@ -89,3 +89,5 @@ To also disable the former Google OAuth API endpoints, replace `backend/auth.py`
 - Login is local email/password, stored as scrypt password hashes with sessions sent using HttpOnly cookies. Public deployment needs further review of rate limits, account recovery, HTTPS, CSRF protection, etc.
 - The exported MP4 supports standard video controls in the editor. This is a single-track scene editor, not a multilayer nonlinear editing tool.
 - Browser UI may require a modern desktop browser; scrolling animations respect `prefers-reduced-motion`.
+
+Thankyou
